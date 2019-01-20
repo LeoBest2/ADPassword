@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+<link href="static/css/toastr.min.css" rel="stylesheet">
+<script src="static/js/toastr.min.js"></script>
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4">
+            <div class="row">
+                <form class="form-signin">
+                    <h2 style="text-align:center"><img src="static/logo.png"></h2>
+                    <ul class="list-group">
+                        <li class="list-group-item list-group-item-info"><span class="glyphicon glyphicon-hand-down"> 新密码要求:</span></li>
+                        <li class="list-group-item list-group-item-warning">
+                            <span class="glyphicon glyphicon-alert"> 长度8位或以上</span>
+                            <span class="glyphicon glyphicon-alert"> 密码不能包含用户名</span>
+                        </li>
+                        <li class="list-group-item list-group-item-warning"><span class="glyphicon glyphicon-alert"> 密码不得与最近使用过的密码相同</span></li>
+                        <li class="list-group-item list-group-item-warning"><span class="glyphicon glyphicon-alert"> 包含3种或4种字符（大写、小写、数字、特殊字符）</span></li>
+
+                    </ul>
+                    <div class="input-group">
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-user"
+                                                              aria-hidden="true"></span></span>
+                        <input id="user" name="user" class="form-control" placeholder="域账号" data-trigger="manual" title="警告" data-content="请正确输入账号" required autofocus>
+                        <span class="input-group-addon span1">@{{ domain }}</span>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-lock"
+                                                              aria-hidden="true"></span></span>
+                        <input type="password" id="pwd" name="pwd" class="form-control" placeholder="原密码" data-trigger="manual" title="警告" data-content="请正确输入原密码"  required>
+                        <span class="input-group-addon"><span id='eye' class="glyphicon glyphicon-eye-close"
+                                                              aria-hidden="true"></span></span>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-lock"
+                                                              aria-hidden="true"></span></span>
+                        <input type="password" id="newPwd" name="newPwd" class="form-control" placeholder="新密码" data-trigger="manual" title="警告" data-content="请正确输入新密码"  required>
+                        <span class="input-group-addon"><span id="eye2" class="glyphicon glyphicon-eye-close"
+                                                              aria-hidden="true"></span></span>
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-addon"><span class="glyphicon glyphicon-lock"
+                                                              aria-hidden="true"></span></span>
+                        <input type="password" id="newPwdR" name="newPwdR" class="form-control" placeholder="重复新密码" data-trigger="manual" title="警告" data-content="请正确重复输入新密码" required>
+                        <span class="input-group-addon" ><span id="eye3" class="glyphicon glyphicon-eye-close"
+                                                              aria-hidden="true"></span></span>
+                    </div>
+                    <button id="submit" class="btn btn-lg btn-primary btn-block" type="submit">提 交</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4"></div>
+    </div>
+
+{% endblock %}
+{% block innerimport %}
+<script type="text/javascript" src="static/js/login.js"></script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="static/css/bootstrap-table.min.css">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="static/js/bootstrap-table.min.js"></script>
+
+<!-- Latest compiled and minified Locales -->
+<script src="static/js/bootstrap-table-zh-CN.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>域账号修改日志</h1>
+<span class="label label-info">页面仅显示最新1000条日志</span>
+<span class="label label-info">完整日志请手动检索数据库</span>
+<span class="label label-info">日志按从新到旧排序</span>
+<table id="table"
+       data-toggle="table"
+       data-pagination="true"
+       data-search="true"
+       data-url="../log/json"
+       data-sort-name="id">
+    <thead>
+    <tr>
+        <th data-field="id">序号</th>
+        <th data-field="name">域账号</th>
+        <th data-field="date">修改时间</th>
+    </tr>
+    </thead>
+</table>
+<div class="modal fade" style="margin-top:150px;" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">输入密码访问</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                        <input type="password" id="pwd" class="form-control well" placeholder="请输入密码"/>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="submit1" class="btn btn-primary">提 交</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+{% endblock %}
+{% block innerimport %}
+{% if not login %}<script type="text/javascript" src="static/js/log.js"></script>{% endif %}
+{% endblock %}
