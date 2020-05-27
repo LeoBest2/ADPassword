@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block main %}
+    <div class="text-center">
+        <h1 class="display-1">500</h1>
+        <p class="lead">服务器出问题了,请联系管理员!</p>
+        <small>{{ request.url }}</small>
+        <hr>
+        <small>{{ e }}</small>
+    </div>
+{% endblock %}

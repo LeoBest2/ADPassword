@@ -1,76 +1,112 @@
-# coding=utf-8
-#
+"""
+    ad-password.ad
+    ~~~~~~~~~~~~~~~~~~
+    验证域账号和密码是否正确 & 修改域账号密码
 
-from ldap3 import Server, Connection, RESTARTABLE, set_config_parameter, MODIFY_REPLACE
-from ldap3.core.exceptions import LDAPInvalidCredentialsResult, LDAPConstraintViolationResult, \
-    LDAPInsufficientAccessRightsResult
+    :time 2019/5/19 15:15
+    :copyright: (c) 2019 by Leo.
+    :license: BSD, see LICENSE for more details.
+"""
+
+from ldap3 import Server, Connection, set_config_parameter
+from ldap3.core.exceptions import LDAPInvalidCredentialsResult, LDAPInsufficientAccessRightsResult, \
+    LDAPConstraintViolationResult, LDAPException
+
+from app.config import SERVER, BIND_USER, BIND_PWD, NETBIOS_NAME, SEARCH_BASE
 
 
-# https://ldap3.readthedocs.io/installation.html#global-configuration
 set_config_parameter('RESTARTABLE_TRIES', 1)
+_server = Server(SERVER, use_ssl=True)
+_conn = Connection(server=_server, user=BIND_USER, password=BIND_PWD, auto_bind=True, raise_exceptions=True)
 
 
-class AD(object):
-    def __init__(self, server, admin, admin_pwd, search_base, netbios):
-        self.s = Server(server)
-        self.ss = Server(server, use_ssl=True)
-        self.admin_c = Connection(self.ss, '%s\%s' % (netbios, admin), admin_pwd, auto_bind=True,
-                                  client_strategy=RESTARTABLE, raise_exceptions=True)
-        self.search_base = search_base
-        self.netbios = netbios
+__all__ = ['is_user_authenticated', 'modify_user_password']
 
-    def is_auth(self, user, pwd, max_recurse=1):
-        u"""接受用户SamAccountName和密码\n返回(True or False, message)"""
-        if max_recurse < 0:
-            return False, u'该用户下次登陆必须修改密码，设置pwdLastSet=-1失败'
-        try:
-            c = Connection(self.s, '%s\%s' % (self.netbios, user), pwd, auto_bind=True, raise_exceptions=True)
-            c.unbind()
+
+def is_user_authenticated(account, pwd, ignore_must_change_password_at_logon=False):
+    """
+    验证域账号和密码是否正确
+
+    :param account: str : SamAccountName
+    :param pwd: str
+    :param ignore_must_change_password_at_logon: bool :
+            供修改密码使用,设置为True时当检测到用户必须修改密码时通过验证(只有密码正确且设置了用户下次登录必须修改密码时候才返回错误代码773)，
+            返回(True, ''), 否则返回(False, msg)
+    :return: tuple : (True or False: bool, msg: str)
+    """
+    try:
+        with Connection(server=_server, user=r'%s\%s' % (NETBIOS_NAME, account), password=pwd,
+                        auto_bind=True, raise_exceptions=True):
             return True, ''
-        except LDAPInvalidCredentialsResult as e:
-            if '52e' in e.message:
-                return False, u'用户名或密码不正确!'
-            elif '775' in e.message:
-                return False, u'账号已锁定，请联系管理员或等待自动解锁!'
-            elif '533' in e.message:
-                return False, u'账号已禁用!'
-            elif '773' in e.message:
-                # 账号下次登陆必须修改密码导致的绑定不成功，取消该设置并再认证一次
-                self.admin_c.search(self.search_base, '(SamAccountName=%s)' % user, attributes=['pwdLastSet'])
-                dn = self.admin_c.entries[0].entry_dn
-                self.admin_c.modify(dn, {'pwdLastSet': [(MODIFY_REPLACE, ['-1'])]})
-                return self.is_auth(user, pwd, max_recurse=max_recurse-1)
-            else:
-                return False, u'认证失败，请联系管理员检查该账号!'
+    except LDAPInvalidCredentialsResult as e:
+        """
+        http://www-01.ibm.com/support/docview.wss?uid=swg21290631
+        525	user not found
+        52e	invalid credentials
+        530	not permitted to logon at this time
+        531	not permitted to logon at this workstation
+        532	password expired
+        533 account disabled 
+        534	The user has not been granted the requested logon type at this machine
+        701	account expired
+        773	user must reset password
+        775	user account locked
+        """
+        if '52e' in e.message:
+            msg = '账号或密码不正确!'
+        elif '773' in e.message:
+            if ignore_must_change_password_at_logon:
+                return True, ''
+            msg = '该账号必须修改密码后才能登陆!'
+        elif '775' in e.message:
+            msg = '该账号已锁定, 请联系管理员解锁!'
+        elif '525' in e.message:
+            msg = '用户不存在!'
+        elif '530' in e.message:
+            msg = '当前时间段不允许登陆!'
+        elif '532' in e.message:
+            msg = '密码已过有效期, 请联系管理员重置!'
+        elif '533' in e.message:
+            msg = '该账号已被禁用, 请联系管理员!'
+        elif '534' in e.message:
+            msg = '未在此计算机上为用户授予所请求的登录类型!'
+        elif '701' in e.message:
+            msg = '该账号已过期, 请联系管理员!'
+        else:
+            msg = e.message
+        return False, msg
 
-    def modify_password(self, user, old_password, new_password):
-        u"""接受用户SamAccountName、旧密码、新密码\n返回(True or False, message)"""
-        try:
-            ret, msg = self.is_auth(user, old_password)
-            if not ret:
-                return ret, msg
-            self.admin_c.search(self.search_base, '(SamAccountName=%s)' % user,
-                                attributes=['pwdLastSet'])
-            if len(self.admin_c.entries) == 0:
-                return False, u'用户名或密码不正确!'
-            entry = self.admin_c.entries[0]
-            # 检测密码最短使用时间未实现
-            # ......
-            # 使用old_password和new_password修改用户密码时候， 必须设置该用户下次登陆必须修改密码，才有效
-            self.admin_c.modify(entry.entry_dn, {'pwdLastSet': [(MODIFY_REPLACE, ['0'])]})
-            self.admin_c.extend.microsoft.modify_password(user=entry.entry_dn, old_password=old_password,
-                                                          new_password=new_password)
-            # 密码修改成功，会自动清除下次登陆必须修改密码标志
-            return True, ''
-        except LDAPInsufficientAccessRightsResult:
-            return False, u'无权修改该用户密码!'
-        except LDAPConstraintViolationResult as e:
-            # 取消用户下次登陆必须修改密码设定
-            self.admin_c.modify(entry.entry_dn, {'pwdLastSet': [(MODIFY_REPLACE, ['-1'])]})
-            if '00000005' in e.message:
-                return False, u'该用户不允许修改密码!'
-            if '0000052D' in e.message:
-                return False, u'新密码不符合策略要求!'
-            if '00000056' in e.message:
-                return False, u'用户名或密码不正确!'
-            return False, u'修改账号密码错误：%s!' % e.message
+
+def modify_user_password(account, old_pwd, new_pwd):
+    """
+    修改域账号密码
+
+    :param account: str: 域账号
+    :param old_pwd: str: 旧密码
+    :param new_pwd: str: 新密码
+    :return: tuple : (True or False: bool, msg: str)
+    """
+    sucessed, msg = is_user_authenticated(account, old_pwd, ignore_must_change_password_at_logon=True)
+    if not sucessed:
+        return False, msg
+    try:
+        _conn.search(SEARCH_BASE, '(SamAccountName=%s)' % account)
+        if len(_conn.entries) == 0:
+            return False, '无法找到该账号DistinguishedName!'
+        _dn = _conn.entries[0].entry_dn
+        _conn.extend.microsoft.modify_password(_dn, new_password=new_pwd, old_password=old_pwd)
+        return True, ''
+    except LDAPConstraintViolationResult as e:
+        if '00000005' in e.message:
+            msg = '该账号不允许修改密码!'
+        elif '0000052D' in e.message:
+            msg = '新密码不符合策略要求!'
+        elif '00000056' in e.message:
+            msg = '用户名或密码不正确!'
+        else:
+            msg = e.message
+        return False, msg
+    except LDAPInsufficientAccessRightsResult:
+        return False, u'无权修改该账号密码!'
+    except LDAPException as e:
+        return False, '服务器错误: %s' % e

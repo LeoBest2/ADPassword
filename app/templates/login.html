@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<div class="row">
+    <div class="col-md-3"></div>
+    <div class=" col-md-6 col-md-offset-3 col-xs-12">
+        <form>
+            <div class="text-center mt-5 pt-5">
+                <img class="mb-4" src="/static/favicon.ico" alt="" width="72" height="72">
+                <h1 class="h3 mb-3 font-weight-normal">请先登录!</h1>
+            </div>
+            <div class="form-group">
+                <label for="account">域账号</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text fa fa-user" aria-hidden="true"></span>
+                    </div>
+                    <input type="text" class="form-control" id="account" placeholder="请输入域账号" required>
+                    <div class="input-group-append">
+                        <span class="input-group-text">@{{ mail_suffix }}</span>
+                    </div>
+                    <div class="invalid-feedback">
+                        请输入域账号!
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="pwd">密码</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text fa fa-lock" aria-hidden="true"></span>
+                    </div>
+                    <input type="password" class="form-control" id="pwd" placeholder="请输入密码" required>
+                    <div class="input-group-append">
+                        <span class="input-group-text fa fa-eye-slash eye" aria-hidden="true"></span>
+                    </div>
+                    <div class="invalid-feedback">
+                        请输入密码!
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">登陆</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    toastr.options.closeButton = true;
+    toastr.options.timeOut = 5000;
+    toastr.options.progressBar = true;
+    toastr.options.positionClass = 'toast-top-center';
+    let $form = $('form');
+    let $account = $('#account');
+    let $pwd = $("#pwd");
+    let $eye = $('.eye');
+    $eye.mousedown(function () {
+        $(this).removeClass('fa-eye-slash');
+        $(this).addClass('fa-eye');
+        $pwd.attr('type', 'text');
+    });
+    $eye.mouseup(function () {
+        $(this).removeClass('fa-eye');
+        $(this).addClass('fa-eye-slash');
+        $pwd.attr('type', 'password');
+    });
+
+    $form.submit(function (e) {
+        e.preventDefault();
+        $form.addClass('was-validated');
+        if ($form[0].checkValidity() === false) {
+            return false;
+        }
+        $.post('/login', {
+                'account': $account.val(),
+                'pwd': $pwd.val()
+            },
+            function (data) {
+                if (data['err'] === 0) {
+                    window.location.href = data['msg'];
+                } else {
+                    toastr.error(data['msg']);
+                }
+            })
+            .fail(function () {
+                toastr.error('登陆失败,服务器故障!');
+            })
+            .always(function () {
+                $form.removeClass('was-validated');
+            });
+    });
+</script>
+{% endblock %}

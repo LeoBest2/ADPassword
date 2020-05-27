@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link href="/static/bootstrap-table@1.14.2/bootstrap-table.min.css" rel="stylesheet">
+<style>
+    .fixed-table-body {
+        height: auto !important;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div id="toolbar">
+        <span class="badge badge-success">
+            总共修改成功: <span class="badge badge-light">{{ count }}</span>
+        </span>
+    <span class="badge badge-info">最多显示最近<span class="badge badge-light">1000</span>条记录!</span>
+</div>
+<table class="table table-striped"
+       data-toggle="table"
+       data-toolbar="#toolbar"
+       data-pagination="true"
+       data-page-list="[10, 50, 100]"
+       data-search="true"
+       data-method="post"
+       data-url="{{ url_for('log_index') }}"
+>
+    <thead>
+    <tr>
+        <th data-field="account">域账号</th>
+        <th data-field="ip">修改IP</th>
+        <th data-field="date">修改时间</th>
+    </tr>
+    </thead>
+</table>
+{% endblock %}
+
+{% block script %}
+<script src="/static/bootstrap-table@1.14.2/bootstrap-table.min.js"></script>
+<script src="/static/bootstrap-table@1.14.2/bootstrap-table-zh-CN.min.js"></script>
+{% endblock %}
