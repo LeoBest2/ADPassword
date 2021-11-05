@@ -2,3 +2,16 @@
 /.idea
 /venv
 config.py
+.vscode
+tmp
+tmp/
+output/
+*.log
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
